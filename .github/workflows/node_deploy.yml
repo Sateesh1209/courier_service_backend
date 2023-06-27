@@ -1,0 +1,62 @@
+name: AWS DEPLOY TO STAGING
+# turn off deploy to AWS
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
+jobs:
+  aws-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: ${{ secrets.AWS_DB_HOST }}
+      DB_PW: ${{ secrets.AWS_DB_PW}}
+      DB_USER: ${{ secrets.AWS_DB_USER }}
+      DB_NAME: ${{ secrets.AWS_DB_NAME }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: dev
+      - uses: actions/setup-node@v2
+        with:
+            node-version: 16
+      - run: npm install
+
+      - run: |
+          touch .env
+          echo DB_HOST = "$DB_HOST" >> .env
+          echo DB_PW = "$DB_PW" >> .env
+          echo DB_USER = "$DB_USER" >> .env
+          echo DB_NAME = "$DB_NAME" >> .env
+          echo SECRET_KEY = "$SECRET_KEY" >> .env
+
+      - run: npm run bundle
+
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@v2.1.1
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "deploy/"
+          REMOTE_HOST: "ec2-18-222-117-133.us-east-2.compute.amazonaws.com"
+          REMOTE_USER: ubuntu
+          TARGET: "nodeapps/courier_service_backend"
+      - name: Execute SSH commmands on remote server
+        uses: JimCronqvist/action-ssh@master
+        env:
+          NAME: "Root"
+        with:
+          hosts: "ubuntu@ec2-18-222-117-133.us-east-2.compute.amazonaws.com"
+          privateKey: ${{ secrets.SERVER_SSH_KEY }}
+          debug: false
+          command: |
+            cd nodeapps/courier_service_backend
+            npm install
+            sudo systemctl stop courier_service_backend
+            sudo cp travel_backend.service /lib/systemd/system/courier_service_backend.service
+            sudo systemctl daemon-reload
+            sudo systemctl start courier_service_backend
