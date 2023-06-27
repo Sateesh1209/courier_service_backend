@@ -1,5 +1,5 @@
 name: AWS DEPLOY TO STAGING
-# turn off deploy to AWS
+#turn off deploy to AWS
 
 on:
   pull_request:
