@@ -57,6 +57,6 @@ jobs:
             cd nodeapps/courier_service_backend
             npm install
             sudo systemctl stop courier_service_backend
-            sudo cp travel_backend.service /lib/systemd/system/courier_service_backend.service
+            sudo cp courier_service_backend.service /lib/systemd/system/courier_service_backend.service
             sudo systemctl daemon-reload
             sudo systemctl start courier_service_backend
