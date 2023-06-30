@@ -1,6 +1,6 @@
 const db = require("../models");
 const { authenticate } = require("../authentication/authentication");
-const User = db.user;
+const Employee = db.employee;
 const Session = db.session;
 const Op = db.Sequelize.Op;
 const { encrypt } = require("../authentication/crypto");
@@ -10,11 +10,11 @@ exports.login = async (req, res) => {
 
   if (userId !== undefined) {
     let user = {};
-    await User.findByPk(userId).then((data) => {
+    await Employee.findByPk(userId).then((data) => {
       user = data;
     });
-    if(req.body.isAdmin === user.isAdmin){
-      let expireTime  = new Date();
+    if (req.body.isAdmin === user.isAdmin) {
+      let expireTime = new Date();
       expireTime.setDate(expireTime.getDate() + 1);
 
       const session = {
@@ -35,9 +35,9 @@ exports.login = async (req, res) => {
         };
         res.send(userInfo);
       });
-    }else {
+    } else {
       return res.status(401).send({
-        message: "User not found!",
+        message: "Employee not found!",
       });
     }
   }

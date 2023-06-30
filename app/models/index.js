@@ -14,18 +14,26 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-
 db.session = require("./session.model.js")(sequelize, Sequelize);
-db.user = require("./user.model.js")(sequelize, Sequelize);
+db.employee = require("./employee.model.js")(sequelize, Sequelize);
+db.roles = require("./roles.model.js")(sequelize, Sequelize);
+db.customers = require("./customers.model.js")(sequelize, Sequelize);
+db.courier = require("./courier.model.js")(sequelize, Sequelize);
+db.status = require("./status.model.js")(sequelize, Sequelize);
 
 // foreign key for session
-db.user.hasMany(
-  db.session,
-  {onDelete: 'CASCADE'}
-);
-db.session.belongsTo(
-  db.user,
-  { onDelete: "CASCADE" }
-);
+db.employee.hasMany(db.session, { onDelete: "CASCADE" });
+db.session.belongsTo(db.employee, { onDelete: "CASCADE" });
+
+db.roles.hasMany(db.employee, { foreignKey: "roleId" });
+db.employee.belongsTo(db.roles, { foreignKey: "roleId" });
+
+db.courier.belongsTo(db.status, { foreignKey: "statusId" });
+db.status.hasMany(db.courier, { foreignKey: "statusId" });
+
+db.customers.hasMany(db.courier, { foreignKey: "phone" });
+db.courier.belongsTo(db.customers, { foreignKey: "phone" });
+
+db.courier.belongsTo(db.employee, { foreignKey: "lastUpdatedBy" });
 
 module.exports = db;
