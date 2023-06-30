@@ -7,21 +7,21 @@ const { encrypt } = require("../authentication/crypto");
 
 exports.login = async (req, res) => {
   let { userId } = await authenticate(req, res, "credentials");
-
-  if (userId !== undefined) {
-    let user = {};
-    await Employee.findByPk(userId).then((data) => {
-      user = data;
-    });
-    if (req.body.isAdmin === user.isAdmin) {
+  try {
+    if (userId !== undefined) {
+      let user = {};
+      await Employee.findByPk(userId).then((data) => {
+        user = data;
+      });
       let expireTime = new Date();
       expireTime.setDate(expireTime.getDate() + 1);
 
       const session = {
         email: user.email,
-        userId: userId,
+        employeeEmpId: userId,
         expirationDate: expireTime,
       };
+      const roleName = await db.roles.findByPk(user.roleId);
       await Session.create(session).then(async (data) => {
         let sessionId = data.id;
         let token = await encrypt(sessionId);
@@ -29,17 +29,17 @@ exports.login = async (req, res) => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          id: user.id,
-          isAdmin: user.isAdmin,
+          roleId: user.roleId,
+          roleName: roleName.roleName,
           token: token,
         };
         res.send(userInfo);
       });
-    } else {
-      return res.status(401).send({
-        message: "Employee not found!",
-      });
     }
+  } catch (e) {
+    return res.status(401).send({
+      message: "Employee not found!",
+    });
   }
 };
 

@@ -1,7 +1,7 @@
 const db = require("../models");
 const { hashPassword } = require("./crypto");
 const Session = db.session;
-const User = db.user;
+const Employee = db.employee;
 
 /**
  * Gets the authentication for this request. Throws an error if there is an authentcation problem.
@@ -23,7 +23,7 @@ authenticate = async (req, res, require = true) => {
       let email = credentials.slice(0, i);
       let password = credentials.slice(i + 1);
       let user = {};
-      await User.findAll({ where: { email: email } })
+      await Employee.findAll({ where: { email: email } })
         .then((data) => {
           user = data[0];
         })
@@ -39,11 +39,11 @@ authenticate = async (req, res, require = true) => {
         }
         return {
           type: "credentials",
-          userId: user.id,
+          userId: user.empId,
         };
       } else {
         return res.status(401).send({
-          message: "User not found!",
+          message: "Employee not found!",
         });
       }
     }

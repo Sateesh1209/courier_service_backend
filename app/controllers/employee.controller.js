@@ -8,19 +8,23 @@ const { encrypt, getSalt, hashPassword } = require("../authentication/crypto");
 exports.create = async (req, res) => {
   // Validate request
   if (req.body.firstName === undefined) {
-    const error = new Error("First name cannot be empty for user!");
+    const error = new Error("First name cannot be empty for employee!");
     error.statusCode = 400;
     throw error;
   } else if (req.body.lastName === undefined) {
-    const error = new Error("Last name cannot be empty for user!");
+    const error = new Error("Last name cannot be empty for employee!");
     error.statusCode = 400;
     throw error;
   } else if (req.body.email === undefined) {
-    const error = new Error("Email cannot be empty for user!");
+    const error = new Error("Email cannot be empty for employee!");
     error.statusCode = 400;
     throw error;
   } else if (req.body.password === undefined) {
-    const error = new Error("Password cannot be empty for user!");
+    const error = new Error("Password cannot be empty for employee!");
+    error.statusCode = 400;
+    throw error;
+  } else if (req.body.roleId === undefined) {
+    const error = new Error("RoleId cannot be empty for employee!");
     error.statusCode = 400;
     throw error;
   }
@@ -46,12 +50,11 @@ exports.create = async (req, res) => {
 
         // Create a Employee
         const user = {
-          id: req.body.id,
           firstName: req.body.firstName,
           lastName: req.body.lastName,
           email: req.body.email,
-          isAdmin: false,
           password: hash,
+          roleId: req.body.roleId,
           salt: salt,
         };
 
@@ -59,14 +62,13 @@ exports.create = async (req, res) => {
         await Employee.create(user)
           .then(async (data) => {
             // Create a Session for the new user
-            let userId = data.id;
-            let isAdmin = data.isAdmin;
+            let userId = data.empId;
             let expireTime = new Date();
             expireTime.setDate(expireTime.getDate() + 1);
 
             const session = {
               email: req.body.email,
-              userId: userId,
+              employeeEmpId: userId,
               expirationDate: expireTime,
             };
             await Session.create(session).then(async (data) => {
@@ -76,8 +78,7 @@ exports.create = async (req, res) => {
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                id: user.id,
-                isAdmin: isAdmin,
+                id: userId,
                 token: token,
               };
               res.send(userInfo);
@@ -166,7 +167,7 @@ exports.update = (req, res) => {
   const id = req.params.id;
 
   Employee.update(req.body, {
-    where: { id: id },
+    where: { empId: id },
   })
     .then((number) => {
       if (number == 1) {
@@ -191,7 +192,7 @@ exports.delete = (req, res) => {
   const id = req.params.id;
 
   Employee.destroy({
-    where: { id: id },
+    where: { empId: id },
   })
     .then((number) => {
       if (number == 1) {
