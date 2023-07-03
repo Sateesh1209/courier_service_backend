@@ -34,7 +34,9 @@ authenticate = async (req, res, require = true) => {
         let hash = await hashPassword(password, user.salt);
         if (Buffer.compare(user.password, hash) !== 0) {
           return res.status(401).send({
+            status: "Failure",
             message: "Invalid password!",
+            data: null,
           });
         }
         return {
@@ -43,7 +45,9 @@ authenticate = async (req, res, require = true) => {
         };
       } else {
         return res.status(401).send({
+          status: "Failure",
           message: "Employee not found!",
+          data: null,
         });
       }
     }
@@ -70,19 +74,25 @@ authenticate = async (req, res, require = true) => {
           };
         } else {
           return res.status(401).send({
+            status: "Failure",
             message: "Session has expired.",
+            data: null,
           });
         }
       } else {
         return res.status(401).send({
+          status: "Failure",
           message: "Invalid session",
+          data: null,
         });
       }
     }
   }
   if (require) {
     return res.status(401).send({
+      status: "Failure",
       message: "Authentication required",
+      data: null,
     });
   }
   return { type: "none", userId: null };
@@ -114,18 +124,24 @@ authenticateRoute = async (req, res, next) => {
           return;
         } else {
           return res.status(401).send({
+            status: "Failure",
             message: "Unauthorized! Expired Token, Logout and Login again",
+            data: null,
           });
         }
       } else {
         return res.status(401).send({
+          status: "Failure",
           message: "Unauthorized! Expired Token, Logout and Login again",
+          data: null,
         });
       }
     }
   } else {
     return res.status(401).send({
+      status: "Failure",
       message: "Unauthorized! No Auth Header",
+      data: null,
     });
   }
 };

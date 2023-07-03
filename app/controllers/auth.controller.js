@@ -33,12 +33,18 @@ exports.login = async (req, res) => {
           roleName: roleName.roleName,
           token: token,
         };
-        res.send(userInfo);
+        res.send({
+          status: "Success",
+          message: "Logged in successfully",
+          data: userInfo,
+        });
       });
     }
   } catch (e) {
     return res.status(401).send({
+      status: "Failed",
       message: "Employee not found!",
+      data: null,
     });
   }
 };
