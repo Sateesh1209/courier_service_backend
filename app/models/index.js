@@ -19,6 +19,7 @@ db.employee = require("./employee.model.js")(sequelize, Sequelize);
 db.roles = require("./roles.model.js")(sequelize, Sequelize);
 db.customers = require("./customers.model.js")(sequelize, Sequelize);
 db.courier = require("./courier.model.js")(sequelize, Sequelize);
+db.courierDetails = require("./courierDetails.model.js")(sequelize, Sequelize);
 db.status = require("./status.model.js")(sequelize, Sequelize);
 
 // foreign key for session
@@ -34,6 +35,14 @@ db.status.hasMany(db.courier, { foreignKey: "statusId" });
 db.customers.hasMany(db.courier, { foreignKey: "phone" });
 db.courier.belongsTo(db.customers, { foreignKey: "phone" });
 
-db.courier.belongsTo(db.employee, { foreignKey: "lastUpdatedBy" });
+db.courier.belongsTo(db.employee, {
+  foreignKey: "lastUpdatedBy",
+});
+db.courier.belongsTo(db.employee, {
+  foreignKey: "assignedTo",
+});
+
+db.courier.hasOne(db.courierDetails, { onDelete: "CASCADE" });
+db.courierDetails.belongsTo(db.courier, { onDelete: "CASCADE" });
 
 module.exports = db;

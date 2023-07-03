@@ -20,6 +20,10 @@ module.exports = (sequelize, Sequelize) => {
       allowNull: false,
       unique: true,
     },
+    phone: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
     password: {
       type: Sequelize.BLOB,
       allowNull: false,
