@@ -7,10 +7,10 @@ module.exports = (app) => {
   router.post("/employee/", Employee.create);
 
   // Retrieve all Users
-  router.get("/users/", Employee.findAll);
+  router.get("/employees/", Employee.findAll);
 
   // Retrieve a single Employee with id
-  router.get("/users/:id", Employee.findOne);
+  router.get("/employee/:id", Employee.findOne);
 
   // Update a Employee with id
   router.put("/employee/:id", [authenticateRoute], Employee.update);
