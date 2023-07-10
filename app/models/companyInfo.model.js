@@ -1,27 +1,54 @@
 module.exports = (sequelize, Sequelize) => {
-    const CompanyInfo = sequelize.define("company_info", {
-      location: {
+  const CompanyInfo = sequelize.define(
+    "company_info",
+    {
+      name: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      startHour: {
+        type: Sequelize.TIME,
+        allowNull: false,
+      },
+      endHour: {
+        type: Sequelize.TIME,
+        allowNull: false,
+      },
+      cancelCharges: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      avenue: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      street: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      block: {
         type: Sequelize.STRING,
         allowNull: false,
       },
       pricePerBlock: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
         allowNull: false,
       },
       timePerBlock: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
         allowNull: false,
       },
       onTimeBonus: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
         allowNull: false,
       },
-    },{
-      tableName: 'company_info',
+    },
+    {
+      tableName: "company_info",
       timestamps: false,
-      freezeTableName: true
-    });
-  
-    return CompanyInfo;
-  };
-  
+      freezeTableName: true,
+    }
+  );
+
+  return CompanyInfo;
+};

@@ -40,6 +40,30 @@ db.sequelize
             });
         }
       });
+    db.companyInfo
+      .findAll()
+      .then((data)=> {
+        if(data?.length === 0) {
+          db.companyInfo
+            .create({
+              name: 'DJ',
+              startHour: "12:00:00",
+              endHour: "04:00:00",
+              cancelCharges: "10",
+              avenue: "3rd Avenue",
+              street: "C Street",
+              block: "Block 14",
+              pricePerBlock: "1.5",
+              timePerBlock: "3",
+              onTimeBonus: "10"
+            }).then(() => {
+              console.log("Records are inserted into table companyInfo");
+            })
+            .catch((e) => {
+              console.log("Trouble inserting records into companyInfo table", e);
+            });
+        }
+      })
   })
   .catch((e) => {
     console.log("Error creating table");
@@ -66,6 +90,8 @@ app.get("/", (req, res) => {
 require("./app/routes/auth.routes.js")(app);
 require("./app/routes/employee.routes")(app);
 require("./app/routes/customers.routes")(app);
+require("./app/routes/companyInfo.routes")(app);
+
 
 // set port, listen for requests
 const PORT = process.env.PORT || 3201;
