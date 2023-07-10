@@ -1,5 +1,7 @@
 module.exports = (sequelize, Sequelize) => {
-    const Status = sequelize.define("status", {
+  const Status = sequelize.define(
+    "status",
+    {
       statusId: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -9,8 +11,11 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: false,
       },
-    });
-  
-    return Status;
-  };
-  
+    },
+    {
+      timestamps: false,
+    }
+  );
+
+  return Status;
+};

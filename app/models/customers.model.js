@@ -1,8 +1,11 @@
 module.exports = (sequelize, Sequelize) => {
-    const Customers = sequelize.define("customers", {
+  const Customers = sequelize.define(
+    "customers",
+    {
       phone: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
       },
       firstName: {
         type: Sequelize.STRING,
@@ -17,12 +20,23 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
         unique: true,
       },
-      address: {
+      avenue: {
         type: Sequelize.STRING,
         allowNull: false,
       },
-    });
-  
-    return Customers;
-  };
-  
+      street: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      block: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+    },
+    {
+      timestamps: false,
+    }
+  );
+
+  return Customers;
+};
