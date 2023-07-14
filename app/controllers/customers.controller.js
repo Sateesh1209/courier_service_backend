@@ -149,6 +149,38 @@ exports.findOne = (req, res) => {
       });
     });
 };
+// Find a single customer with an email id
+exports.findByEmail = (req, res) => {
+  const email = req.params.email;
+
+  Customer.findOne({
+    where: {
+      email: email,
+    },
+  })
+    .then((data) => {
+      if (data) {
+        res.send({
+          status: "Success",
+          message: "Customer Fetched Successfully",
+          data: data,
+        });
+      } else {
+        res.status(404).send({
+          status: "Failure",
+          message: `Cannot find Customer with email = ${email}.`,
+          data: null,
+        });
+      }
+    })
+    .catch((err) => {
+      res.status(500).send({
+        status: "Failure",
+        message: err.message || "Error retrieving Customer with email = " + email,
+        data: null,
+      });
+    });
+}
 
 // Update a Customer by the id in the request
 exports.update = async (req, res) => {
