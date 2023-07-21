@@ -29,14 +29,16 @@ db.session.belongsTo(db.employee, { onDelete: "CASCADE" });
 db.roles.hasMany(db.employee, { foreignKey: "roleId" });
 db.employee.belongsTo(db.roles, { foreignKey: "roleId" });
 
-db.order.belongsTo(db.status, { foreignKey: "statusId" });
+db.order.belongsTo(db.status, { foreignKey: "statusId", as: "status" });
 db.status.hasMany(db.order, { foreignKey: "statusId" });
 
 db.order.belongsTo(db.customers, {
   foreignKey: "sender",
+  as: "senderDetails",
 });
 db.order.belongsTo(db.customers, {
   foreignKey: "receiver",
+  as: "receiverDetails",
 });
 
 db.order.belongsTo(db.employee, {

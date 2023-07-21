@@ -2,13 +2,13 @@ const db = require("../models");
 const CompanyInfo = db.companyInfo;
 
 // Retrieve all CompanyInfo from the database.
-exports.findAll = (req, res) => {
-  CompanyInfo.findAll()
+exports.findOne = (req, res) => {
+  CompanyInfo.findOne()
     .then((data) => {
       res.send({
         status: "Success",
         message: "CompanyInfo Fetched Successfully",
-        data: data,
+        data: data || {},
       });
     })
     .catch((err) => {
