@@ -118,6 +118,7 @@ exports.findAll = (req, res) => {
         model: db.roles,
         attributes: ["roleId", "roleName"],
         required: true,
+        as: "role",
       },
     ],
   })
@@ -151,6 +152,7 @@ exports.findOne = (req, res) => {
         model: db.roles,
         attributes: ["roleId", "roleName"],
         required: true,
+        as: "role",
       },
     ],
   })
@@ -179,27 +181,48 @@ exports.findOne = (req, res) => {
 };
 
 // Find a single Employee with an email
-exports.findByEmail = (req, res) => {
+exports.findDeliveryAgentByEmail = (req, res) => {
   const email = req.params.email;
 
   Employee.findOne({
     where: {
       email: email,
+      roleId: 3,
     },
+    include: [
+      {
+        model: db.roles,
+        as: "role",
+      },
+    ],
   })
     .then((data) => {
       if (data) {
-        res.send(data);
+        const { empId, firstName, lastName, email, phone, role } = data;
+        res.send({
+          status: "Success",
+          message: "Delivery Agent Fetched Successfully",
+          data: {
+            empId: empId,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone,
+            role: role,
+          },
+        });
       } else {
-        res.send({ email: "not found" });
-        /*res.status(404).send({
-          message: `Cannot find Employee with email=${email}.`
-        });*/
+        res.status(404).send({
+          status: "Failure",
+          message: `Cannot find Delivery Agent with email = ${email}.`,
+          data: null,
+        });
       }
     })
     .catch((err) => {
       res.status(500).send({
-        message: err.message || "Error retrieving Employee with email=" + email,
+        message:
+          err.message || "Error retrieving Delivery Agent with email=" + email,
       });
     });
 };
@@ -237,7 +260,7 @@ exports.update = async (req, res) => {
           data: null,
         });
       } else {
-        res.send({
+        res.status(404).send({
           status: "Failure",
           message: `Cannot update Employee with id = ${id}. Maybe Employee was not found or req.body is empty!`,
           data: null,
@@ -254,34 +277,57 @@ exports.update = async (req, res) => {
 };
 
 // Delete a Employee with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
-
-  Employee.destroy({
-    where: { empId: id },
-  })
-    .then((number) => {
-      if (number == 1) {
-        res.send({
-          status: "Success",
-          message: "Employee was deleted successfully!",
-          data: null,
-        });
-      } else {
-        res.send({
-          status: "Failure",
-          message: `Cannot delete Employee with id = ${id}. Maybe Employee was not found!`,
-          data: null,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
+exports.delete = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const assignedOrders = await db.order.findAll({
+      where: {
+        assignedTo: id,
+        statusId: {
+          [Op.or]: [2, 3, 6],
+        },
+      },
+    });
+    if (assignedOrders.length > 0) {
+      return res.status(400).send({
         status: "Failure",
-        message: err.message || "Could not delete Employee with id = " + id,
+        message:
+          "This employee can't be deleted since he/she has ongoing orders",
         data: null,
       });
+    }
+    await Employee.destroy({
+      where: { empId: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message: "Employee was deleted successfully!",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot delete Employee with id = ${id}. Maybe Employee was not found!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Could not delete Employee with id = " + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
     });
+  }
 };
 
 // Delete all People from the database.
