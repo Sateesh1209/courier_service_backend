@@ -78,7 +78,59 @@ exports.create = async (req, res) => {
 // Retrieve all Orders from the database.
 exports.findAll = async (req, res) => {
   try {
+    const statusId = req.params.statusId;
+    const customerId = req.params.customerId;
+    let whereCondition = {};
+    if (statusId != 0) {
+      whereCondition.statusId = statusId;
+    }
+    if (customerId != "all") {
+      whereCondition.sender = customerId;
+    }
     await Order.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: db.employee,
+          as: "assignedToDetails",
+          attributes: ["empId", "firstName", "lastName"],
+        },
+        {
+          model: db.customers,
+          as: "senderDetails",
+          attributes: ["id", "firstName", "lastName"],
+        },
+        {
+          model: db.customers,
+          as: "receiverDetails",
+          attributes: ["id", "firstName", "lastName"],
+        },
+        {
+          model: db.status,
+          as: "status",
+        },
+      ],
+    }).then((data) => {
+      res.send({
+        status: "Success",
+        message: "Orders Fetched Successfully",
+        data: data,
+      });
+    });
+  } catch (err) {
+    res.status(500).send({
+      status: "Failure",
+      message: err.message || "Some error occurred while retrieving orders.",
+      data: null,
+    });
+  }
+};
+
+exports.findAllByEmployee = async (req, res) => {
+  try {
+    const empId = req.params.empId;
+    await Order.findAll({
+      where: { assignedTo: empId },
       include: [
         {
           model: db.customers,
@@ -246,6 +298,108 @@ exports.update = async (req, res) => {
           res.send({
             status: "Success",
             message: "Order was updated successfully.",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot update Order with id = ${id}. Maybe Order was not found or req.body is empty!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Error updating Order with id =" + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
+    });
+  }
+};
+// Update a Order by the id in the request
+exports.updateAssigned = async (req, res) => {
+  try {
+    if (req.body.assignedTo === undefined) {
+      const error = new Error("assignedTo cannot be empty for order!");
+      error.message = "assignedTo cannot be empty for order!";
+      error.statusCode = 400;
+      throw error;
+    }
+    const id = req.params.id;
+    req.body.statusId = 2;
+    await Order.update(req.body, {
+      where: { id: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message: "Order assigned successfully.",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot update Order with id = ${id}. Maybe Order was not found or req.body is empty!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Error updating Order with id =" + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
+    });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    if (req.body.statusId === undefined) {
+      const error = new Error("statusId cannot be empty for order!");
+      error.message = "statusId cannot be empty for order!";
+      error.statusCode = 400;
+      throw error;
+    }
+    const id = req.params.id;
+
+    const currentOrder = await db.order.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const companyDetails = await db.companyInfo.findOne({});
+
+    if (currentOrder.statusId == 3) {
+      req.body.totalPrice = companyDetails.cancelCharges;
+    } else {
+      req.body.totalPrice = 0;
+    }
+
+    await Order.update(req.body, {
+      where: { id: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message: "Order status updated successfully.",
             data: null,
           });
         } else {

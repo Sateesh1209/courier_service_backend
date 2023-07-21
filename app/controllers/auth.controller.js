@@ -26,7 +26,9 @@ exports.login = async (req, res) => {
         let sessionId = data.id;
         let token = await encrypt(sessionId);
         let companyInfo = await db.companyInfo.findOne();
+        let statuses = await db.status.findAll();
         let userInfo = {
+          empId: user.empId,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -34,6 +36,7 @@ exports.login = async (req, res) => {
           roleName: roleName.roleName,
           token: token,
           companyInfo: companyInfo,
+          statuses: statuses,
         };
         res.send({
           status: "Success",
