@@ -31,7 +31,7 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
       },
       totalPrice: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE(10, 2),
         allowNull: true,
       },
       statusId: {

@@ -1,4 +1,5 @@
 const db = require("../models");
+const Op = db.Sequelize.Op;
 const Order = db.order;
 
 // Create and Save a new Order
@@ -129,30 +130,50 @@ exports.findAll = async (req, res) => {
 exports.findAllByEmployee = async (req, res) => {
   try {
     const empId = req.params.empId;
-    await Order.findAll({
-      where: { assignedTo: empId },
-      include: [
-        {
-          model: db.customers,
-          as: "senderDetails",
-          attributes: ["id", "firstName", "lastName"],
-        },
-        {
-          model: db.customers,
-          as: "receiverDetails",
-          attributes: ["id", "firstName", "lastName"],
-        },
-        {
-          model: db.status,
-          as: "status",
-        },
-      ],
-    }).then((data) => {
-      res.send({
-        status: "Success",
-        message: "Orders Fetched Successfully",
-        data: data,
-      });
+    let totalDeliveries = {
+      ongoing: await Order.findAll({
+        where: { assignedTo: empId, statusId: { [Op.or]: [3, 6] } },
+        include: [
+          {
+            model: db.customers,
+            as: "senderDetails",
+            attributes: ["id", "firstName", "lastName"],
+          },
+          {
+            model: db.customers,
+            as: "receiverDetails",
+            attributes: ["id", "firstName", "lastName"],
+          },
+          {
+            model: db.status,
+            as: "status",
+          },
+        ],
+      }),
+      total: await Order.findAll({
+        where: { assignedTo: empId },
+        include: [
+          {
+            model: db.customers,
+            as: "senderDetails",
+            attributes: ["id", "firstName", "lastName"],
+          },
+          {
+            model: db.customers,
+            as: "receiverDetails",
+            attributes: ["id", "firstName", "lastName"],
+          },
+          {
+            model: db.status,
+            as: "status",
+          },
+        ],
+      }),
+    };
+    res.send({
+      status: "Success",
+      message: "Orders Fetched Successfully",
+      data: totalDeliveries,
     });
   } catch (err) {
     res.status(500).send({
@@ -342,6 +363,82 @@ exports.updateAssigned = async (req, res) => {
           res.send({
             status: "Success",
             message: "Order assigned successfully.",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot update Order with id = ${id}. Maybe Order was not found or req.body is empty!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Error updating Order with id =" + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
+    });
+  }
+};
+exports.updatePickup = async (req, res) => {
+  try {
+    const id = req.params.id;
+    req.body.statusId = 3;
+    await Order.update(req.body, {
+      where: { id: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message: "Order status updated successfully.",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot update Order with id = ${id}. Maybe Order was not found or req.body is empty!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Error updating Order with id =" + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
+    });
+  }
+};
+exports.updateDeliveryStatus = async (req, res) => {
+  try {
+    const id = req.params.id;
+    await Order.update(req.body, {
+      where: { id: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message:
+              req.body?.statusId == 4
+                ? "Order Delivered Successfully."
+                : "Order status updated successfully.",
             data: null,
           });
         } else {

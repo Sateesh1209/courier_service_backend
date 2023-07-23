@@ -23,7 +23,7 @@ authenticate = async (req, res, require = true) => {
       let email = credentials.slice(0, i);
       let password = credentials.slice(i + 1);
       let user = {};
-      await Employee.findAll({ where: { email: email } })
+      await Employee.findAll({ where: { email: email, isActive: true } })
         .then((data) => {
           user = data[0];
         })

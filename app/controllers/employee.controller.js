@@ -35,15 +35,85 @@ exports.create = async (req, res) => {
     where: {
       email: req.body.email,
     },
+    include: [
+      {
+        model: db.roles,
+        attributes: ["roleId", "roleName"],
+        required: true,
+        as: "role",
+      },
+    ],
   })
     .then(async (data) => {
       if (data) {
-        res.status(500).send({
-          status: "Failure",
-          message: "This email is already in use.",
-          data: null,
-        });
-        return "This email is already in use.";
+        if (data.isActive) {
+          res.status(500).send({
+            status: "Failure",
+            message: "This email is already in use.",
+            data: null,
+          });
+          return "This email is already in use.";
+        } else {
+          if (req.body.reactivate) {
+            let user;
+            if (req.body.password !== undefined) {
+              let salt = await getSalt();
+              let hash = await hashPassword(req.body.password, salt);
+
+              // Create a Employee
+              user = {
+                firstName: req.body.firstName,
+                lastName: req.body.lastName,
+                phone: req.body.phone,
+                email: req.body.email,
+                password: hash,
+                roleId: data.roleId,
+                isActive: true,
+                salt: salt,
+              };
+            } else {
+              user = req.body;
+            }
+            Employee.update(user, {
+              where: { empId: data.empId },
+            })
+              .then((number) => {
+                if (number == 1) {
+                  res.send({
+                    status: "Success",
+                    message: "Account reactivated successfully.",
+                    data: null,
+                  });
+                  return "Account reactivated successfully.";
+                } else {
+                  res.status(404).send({
+                    status: "Failure",
+                    message: `Cannot update Employee with id = ${id}. Maybe Employee was not found or req.body is empty!`,
+                    data: null,
+                  });
+                  return `Cannot update Employee with id = ${id}. Maybe Employee was not found or req.body is empty!`;
+                }
+              })
+              .catch((err) => {
+                res.status(500).send({
+                  status: "Failure",
+                  message:
+                    err.message || "Error updating Employee with id =" + id,
+                  data: null,
+                });
+              });
+          } else {
+            res.send({
+              status: "Success",
+              message: "This email is soft delted.",
+              data: {
+                accoutExists: true,
+                message: `This email (${data.email}) is already registered as ${data.role?.roleName} but soft deleted. Please click on confirm if you wanted to reactivate it and all fields will get updated except the role. If you wanted to change the role then click on cancel and try with different email...`,
+              },
+            });
+            return "This email is soft deleted.";
+          }
+        }
       } else {
         console.log("email not found");
         let salt = await getSalt();
@@ -57,6 +127,7 @@ exports.create = async (req, res) => {
           email: req.body.email,
           password: hash,
           roleId: req.body.roleId,
+          isActive: true,
           salt: salt,
         };
 
@@ -111,6 +182,7 @@ exports.findAll = (req, res) => {
       roleId: {
         [Op.ne]: 1,
       },
+      isActive: true,
     },
     attributes: { exclude: ["password", "salt"] },
     include: [
@@ -145,6 +217,7 @@ exports.findOne = (req, res) => {
   Employee.findOne({
     where: {
       empId: id,
+      isActive: true,
     },
     attributes: { exclude: ["password", "salt"] },
     include: [
@@ -188,6 +261,7 @@ exports.findDeliveryAgentByEmail = (req, res) => {
     where: {
       email: email,
       roleId: 3,
+      isActive: true,
     },
     include: [
       {
@@ -231,49 +305,64 @@ exports.findDeliveryAgentByEmail = (req, res) => {
 exports.update = async (req, res) => {
   const id = req.params.id;
   let user;
-  if (req.body.password !== undefined) {
-    let salt = await getSalt();
-    let hash = await hashPassword(req.body.password, salt);
-
-    // Create a Employee
-    user = {
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      phone: req.body.phone,
+  await Employee.findOne({
+    where: {
       email: req.body.email,
-      password: hash,
-      roleId: req.body.roleId,
-      salt: salt,
-    };
-  } else {
-    user = req.body;
-  }
-
-  Employee.update(user, {
-    where: { empId: id },
-  })
-    .then((number) => {
-      if (number == 1) {
-        res.send({
-          status: "Success",
-          message: "Employee was updated successfully.",
-          data: null,
-        });
-      } else {
-        res.status(404).send({
-          status: "Failure",
-          message: `Cannot update Employee with id = ${id}. Maybe Employee was not found or req.body is empty!`,
-          data: null,
-        });
-      }
-    })
-    .catch((err) => {
+    },
+  }).then(async (data) => {
+    if (data?.empId && data?.empId != id) {
       res.status(500).send({
         status: "Failure",
-        message: err.message || "Error updating Employee with id =" + id,
+        message: "This email can't be updated since it is already in use.",
         data: null,
       });
-    });
+      return "This email is already in use.";
+    } else {
+      if (req.body.password !== undefined) {
+        let salt = await getSalt();
+        let hash = await hashPassword(req.body.password, salt);
+
+        // Create a Employee
+        user = {
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+          phone: req.body.phone,
+          email: req.body.email,
+          password: hash,
+          roleId: req.body.roleId,
+          salt: salt,
+        };
+      } else {
+        user = req.body;
+      }
+
+      Employee.update(user, {
+        where: { empId: id },
+      })
+        .then((number) => {
+          if (number == 1) {
+            res.send({
+              status: "Success",
+              message: "Employee was updated successfully.",
+              data: null,
+            });
+          } else {
+            res.status(404).send({
+              status: "Failure",
+              message: `Cannot update Employee with id = ${id}. Maybe Employee was not found or req.body is empty!`,
+              data: null,
+            });
+          }
+        })
+        .catch((err) => {
+          res.status(500).send({
+            status: "Failure",
+            message: err.message || "Error updating Employee with id =" + id,
+            data: null,
+          });
+        });
+    }
+  });
 };
 
 // Delete a Employee with the specified id in the request
@@ -296,7 +385,8 @@ exports.delete = async (req, res) => {
         data: null,
       });
     }
-    await Employee.destroy({
+    let employee = { isActive: false };
+    await Employee.update(employee, {
       where: { empId: id },
     })
       .then((number) => {

@@ -1,4 +1,5 @@
 const db = require("../models");
+const Op = db.Sequelize.Op;
 const Customer = db.customers;
 
 // Create and Save a new Customer
@@ -43,51 +44,138 @@ exports.create = async (req, res) => {
     }
 
     // find by email
-    await Customer.findOne({
+    let data = await Customer.findOne({
       where: {
         email: req.body.email,
       },
-    })
-      .then(async (data) => {
-        if (data) {
-          res.status(500).send({
-            status: "Failure",
-            message: "This email is already in use.",
-            data: null,
-          });
-          return "This email is already in use.";
-        } else {
-          console.log("email not found");
+    });
+    if (data) {
+      if (data.isActive) {
+        res.status(500).send({
+          status: "Failure",
+          message: "This email is already in use.",
+          data: null,
+        });
+        return "This email is already in use.";
+      } else {
+        if (req.body.reactivate) {
+          req.body.isActive = true;
+          const currentVersion = req.body;
+          Customer.update(req.body, {
+            where: { id: data.id },
+          })
+            .then(async (number) => {
+              if (number == 1) {
+                if (
+                  data.street != currentVersion.street ||
+                  data.avenue != currentVersion.avenue ||
+                  data.block != currentVersion.block
+                ) {
+                  try {
+                    await db.sequelize.transaction(async (t) => {
+                      const sentOrders = await db.order.findAll({
+                        where: {
+                          sender: data.id,
+                          pickupPoint: {
+                            [Op.like]: "%/true",
+                          },
+                        },
+                        transaction: t,
+                      });
+                      for (const sentOrder of sentOrders) {
+                        sentOrder.pickupPoint = sentOrder.pickupPoint.replace(
+                          "/true",
+                          "/false"
+                        );
+                        await sentOrder.save({ transaction: t });
+                      }
 
-          // Save Customer in the database
-          await Customer.create(req.body)
-            .then((data) => {
-              res.send({
-                status: "Success",
-                message: "Customer created successfully",
-                data: null,
-              });
+                      const receivedOrders = await db.order.findAll({
+                        where: {
+                          receiver: data.id,
+                          dropoffPoint: {
+                            [Op.like]: "%/true",
+                          },
+                        },
+                        transaction: t,
+                      });
+
+                      for (const receivedOrder of receivedOrders) {
+                        receivedOrder.dropoffPoint =
+                          receivedOrder.dropoffPoint.replace("/true", "/false");
+                        await receivedOrder.save({ transaction: t });
+                      }
+                    });
+                  } catch (error) {
+                    console.error("Error updating orders:", error);
+                  }
+                }
+                res.send({
+                  status: "Success",
+                  message: "Customer reactivated successfully.",
+                  data: null,
+                });
+                return "Customer reactivated successfully.";
+              } else {
+                res.status(404).send({
+                  status: "Failure",
+                  message: `Cannot update Customer with id = ${id}. Maybe Customer was not found or req.body is empty!`,
+                  data: null,
+                });
+                return `Cannot update Customer with id = ${id}. Maybe Customer was not found or req.body is empty!`;
+              }
             })
             .catch((err) => {
-              console.log(err);
               res.status(500).send({
                 status: "Failure",
                 message:
-                  err.message ||
-                  "Some error occurred while creating the Customer.",
+                  err.message || "Error updating Customer with id =" + id,
                 data: null,
               });
             });
+        } else {
+          res.send({
+            status: "Success",
+            message: "This email is soft delted.",
+            data: {
+              accoutExists: true,
+              message: `This email (${data.email}) is already registered but soft deleted. Please click on confirm if you wanted to reactivate it and all fields will get updated...`,
+            },
+          });
+          return "This email is soft deleted.";
         }
-      })
-      .catch((err) => {
-        return res.status(500).send({
-          status: "Failure",
-          message:
-            err.message || "Error retrieving Customer with email=" + email,
-          data: null,
+      }
+    } else {
+      console.log("email not found");
+      req.body.isActive = true;
+      // Save Customer in the database
+      await Customer.create(req.body)
+        .then((data) => {
+          res.send({
+            status: "Success",
+            message: "Customer created successfully",
+            data: null,
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).send({
+            status: "Failure",
+            message:
+              err.message || "Some error occurred while creating the Customer.",
+            data: null,
+          });
         });
-      });
+    }
+    // })
+    // .catch((err) => {
+    //   return res.status(500).send({
+    //     status: "Failure",
+    //     message:
+    //       err.message || "Error retrieving Customer with email=" + email,
+    //     data: null,
+    //   });
+    // });
   } catch (e) {
     return res.status(500).send({
       status: "Failure",
@@ -99,7 +187,9 @@ exports.create = async (req, res) => {
 
 // Retrieve all Customers from the database.
 exports.findAll = (req, res) => {
-  Customer.findAll()
+  Customer.findAll({
+    where: { isActive: true },
+  })
     .then((data) => {
       res.send({
         status: "Success",
@@ -124,6 +214,7 @@ exports.findOne = (req, res) => {
   Customer.findOne({
     where: {
       id: id,
+      isActive: true,
     },
   })
     .then((data) => {
@@ -156,6 +247,7 @@ exports.findByEmail = (req, res) => {
   Customer.findOne({
     where: {
       email: email,
+      isActive: true,
     },
   })
     .then((data) => {
@@ -176,70 +268,161 @@ exports.findByEmail = (req, res) => {
     .catch((err) => {
       res.status(500).send({
         status: "Failure",
-        message: err.message || "Error retrieving Customer with email = " + email,
-        data: null,
-      });
-    });
-}
-
-// Update a Customer by the id in the request
-exports.update = async (req, res) => {
-  const id = req.params.id;
-  let customer = req.body;
-  Customer.update(customer, {
-    where: { id: id },
-  })
-    .then((number) => {
-      if (number == 1) {
-        res.send({
-          status: "Success",
-          message: "Customer was updated successfully.",
-          data: null,
-        });
-      } else {
-        res.send({
-          status: "Failure",
-          message: `Cannot update Customer with id = ${id}. Maybe Customer was not found or req.body is empty!`,
-          data: null,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        status: "Failure",
-        message: err.message || "Error updating Customer with id =" + id,
+        message:
+          err.message || "Error retrieving Customer with email = " + email,
         data: null,
       });
     });
 };
 
-// Delete a Customer with the specified id in the request
-exports.delete = (req, res) => {
+// Update a Customer by the id in the request
+exports.update = async (req, res) => {
   const id = req.params.id;
-
-  Customer.destroy({
-    where: { id: id },
-  })
-    .then((number) => {
-      if (number == 1) {
-        res.send({
-          status: "Success",
-          message: "Customer was deleted successfully!",
-          data: null,
-        });
-      } else {
-        res.send({
-          status: "Failure",
-          message: `Cannot delete Customer with id = ${id}. Maybe Customer was not found!`,
-          data: null,
-        });
-      }
-    })
-    .catch((err) => {
+  let customer = req.body;
+  await Customer.findOne({
+    where: {
+      email: req.body.email,
+    },
+  }).then(async (data) => {
+    if (data?.id && data?.id != id) {
       res.status(500).send({
         status: "Failure",
-        message: err.message || "Could not delete Customer with id = " + id,
+        message: "This email can't be updated since it is already in use.",
         data: null,
       });
+      return "This email is already in use.";
+    } else {
+      const currentVersion = req.body;
+      const previousVersion = await Customer.findOne({
+        where: {
+          id: id,
+          isActive: true,
+        },
+      });
+      Customer.update(customer, {
+        where: { id: id },
+      })
+        .then(async (number) => {
+          if (number == 1) {
+            if (
+              previousVersion.street != currentVersion.street ||
+              previousVersion.avenue != currentVersion.avenue ||
+              previousVersion.block != currentVersion.block
+            ) {
+              try {
+                await db.sequelize.transaction(async (t) => {
+                  const sentOrders = await db.order.findAll({
+                    where: {
+                      sender: id,
+                      pickupPoint: {
+                        [Op.like]: "%/true",
+                      },
+                    },
+                    transaction: t,
+                  });
+                  for (const sentOrder of sentOrders) {
+                    sentOrder.pickupPoint = sentOrder.pickupPoint.replace(
+                      "/true",
+                      "/false"
+                    );
+                    await sentOrder.save({ transaction: t });
+                  }
+
+                  const receivedOrders = await db.order.findAll({
+                    where: {
+                      receiver: id,
+                      dropoffPoint: {
+                        [Op.like]: "%/true",
+                      },
+                    },
+                    transaction: t,
+                  });
+
+                  for (const receivedOrder of receivedOrders) {
+                    receivedOrder.dropoffPoint =
+                      receivedOrder.dropoffPoint.replace("/true", "/false");
+                    await receivedOrder.save({ transaction: t });
+                  }
+                });
+              } catch (error) {
+                console.error("Error updating orders:", error);
+              }
+            }
+            res.send({
+              status: "Success",
+              message: "Customer was updated successfully.",
+              data: null,
+            });
+          } else {
+            res.send({
+              status: "Failure",
+              message: `Cannot update Customer with id = ${id}. Maybe Customer was not found or req.body is empty!`,
+              data: null,
+            });
+          }
+        })
+        .catch((err) => {
+          res.status(500).send({
+            status: "Failure",
+            message: err.message || "Error updating Customer with id =" + id,
+            data: null,
+          });
+        });
+    }
+  });
+};
+
+// Delete a Customer with the specified id in the request
+exports.delete = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const activeOrders = await db.order.findAll({
+      where: {
+        sender: id,
+        statusId: {
+          [Op.or]: [1, 2, 3, 6],
+        },
+      },
     });
+    if (activeOrders.length > 0) {
+      return res.status(400).send({
+        status: "Failure",
+        message:
+          "This customer can't be deleted since he/she has ongoing orders",
+        data: null,
+      });
+    }
+    let customer = { isActive: false };
+    Customer.update(customer, {
+      where: { id: id },
+    })
+      .then((number) => {
+        if (number == 1) {
+          res.send({
+            status: "Success",
+            message: "Customer was deleted successfully!",
+            data: null,
+          });
+        } else {
+          res.send({
+            status: "Failure",
+            message: `Cannot delete Customer with id = ${id}. Maybe Customer was not found!`,
+            data: null,
+          });
+        }
+      })
+      .catch((err) => {
+        res.status(500).send({
+          status: "Failure",
+          message: err.message || "Could not delete Customer with id = " + id,
+          data: null,
+        });
+      });
+  } catch (e) {
+    return res.status(500).send({
+      status: "Failure",
+      message: e.message,
+      data: null,
+    });
+  }
 };

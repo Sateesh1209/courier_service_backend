@@ -6,11 +6,17 @@ module.exports = (app) => {
   // Create a new Employee
   router.post("/employee/", Employee.create);
 
-  // Retrieve all Users
-  router.get("/employees/", Employee.findAll);
+  // Retrieve all employees
+  router.get("/employees/", [authenticateRoute], Employee.findAll);
 
   // Retrieve a single Employee with id
-  router.get("/employee/:id", Employee.findOne);
+  router.get("/employee/:id", [authenticateRoute], Employee.findOne);
+  // Retrieve a single delievry agent with email
+  router.get(
+    "/employee/deliveryAgent/:email",
+    [authenticateRoute],
+    Employee.findDeliveryAgentByEmail
+  );
 
   // Update a Employee with id
   router.put("/employee/:id", [authenticateRoute], Employee.update);
@@ -19,7 +25,7 @@ module.exports = (app) => {
   router.delete("/employee/:id", [authenticateRoute], Employee.delete);
 
   // Delete all Employee
-  router.delete("/users/", [authenticateRoute], Employee.deleteAll);
+  router.delete("/employees/", [authenticateRoute], Employee.deleteAll);
 
   app.use("/courierapi", router);
 };
