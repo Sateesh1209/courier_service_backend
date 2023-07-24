@@ -1,7 +1,7 @@
 const db = require("../models");
 const { hashPassword } = require("./crypto");
 const Session = db.session;
-const User = db.user;
+const Employee = db.employee;
 
 /**
  * Gets the authentication for this request. Throws an error if there is an authentcation problem.
@@ -23,7 +23,7 @@ authenticate = async (req, res, require = true) => {
       let email = credentials.slice(0, i);
       let password = credentials.slice(i + 1);
       let user = {};
-      await User.findAll({ where: { email: email } })
+      await Employee.findAll({ where: { email: email, isActive: true } })
         .then((data) => {
           user = data[0];
         })
@@ -34,16 +34,20 @@ authenticate = async (req, res, require = true) => {
         let hash = await hashPassword(password, user.salt);
         if (Buffer.compare(user.password, hash) !== 0) {
           return res.status(401).send({
+            status: "Failure",
             message: "Invalid password!",
+            data: null,
           });
         }
         return {
           type: "credentials",
-          userId: user.id,
+          userId: user.empId,
         };
       } else {
         return res.status(401).send({
-          message: "User not found!",
+          status: "Failure",
+          message: "Employee not found!",
+          data: null,
         });
       }
     }
@@ -70,19 +74,25 @@ authenticate = async (req, res, require = true) => {
           };
         } else {
           return res.status(401).send({
+            status: "Failure",
             message: "Session has expired.",
+            data: null,
           });
         }
       } else {
         return res.status(401).send({
+          status: "Failure",
           message: "Invalid session",
+          data: null,
         });
       }
     }
   }
   if (require) {
     return res.status(401).send({
+      status: "Failure",
       message: "Authentication required",
+      data: null,
     });
   }
   return { type: "none", userId: null };
@@ -114,18 +124,24 @@ authenticateRoute = async (req, res, next) => {
           return;
         } else {
           return res.status(401).send({
+            status: "Failure",
             message: "Unauthorized! Expired Token, Logout and Login again",
+            data: null,
           });
         }
       } else {
         return res.status(401).send({
+          status: "Failure",
           message: "Unauthorized! Expired Token, Logout and Login again",
+          data: null,
         });
       }
     }
   } else {
     return res.status(401).send({
+      status: "Failure",
       message: "Unauthorized! No Auth Header",
+      data: null,
     });
   }
 };
