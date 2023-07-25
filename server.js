@@ -2,6 +2,7 @@ require("dotenv").config();
 const { Op } = require("sequelize");
 const express = require("express");
 const cors = require("cors");
+const {triggerRunBillGeneration} = require('./app/utilities/billGeneration')
 
 const app = express();
 
@@ -54,6 +55,9 @@ db.sequelize
             pricePerBlock: "1.5",
             timePerBlock: "3",
             onTimeBonus: "10",
+            billingCycle: "Monthly",
+            phone: "+1 (231) 231-3121",
+            billingExpression: "0 9 1 * *",
           })
           .then(() => {
             console.log("Records are inserted into table companyInfo");
@@ -109,6 +113,8 @@ db.sequelize
     console.log("Error creating table");
   });
 
+triggerRunBillGeneration(true)
+  
 var corsOptions = {
   origin: "http://localhost:8081",
 };

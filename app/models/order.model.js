@@ -27,7 +27,7 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
       },
       quotedPrice: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DOUBLE(10, 2),
         allowNull: false,
       },
       totalPrice: {
@@ -37,10 +37,6 @@ module.exports = (sequelize, Sequelize) => {
       statusId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-      },
-      assignedBy: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
       },
       assignedTo: {
         type: Sequelize.INTEGER,
@@ -66,6 +62,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      lastStatusUpdate: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      }
     },
     {
       timestamps: false,

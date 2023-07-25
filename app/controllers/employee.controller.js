@@ -386,6 +386,13 @@ exports.delete = async (req, res) => {
       });
     }
     let employee = { isActive: false };
+    const employeeDetails = await Employee.findOne({
+      where: {
+        empId: id
+      }
+    })
+    const employeeEmail = employeeDetails?.email
+    const employeeName = employeeDetails?.firstName
     await Employee.update(employee, {
       where: { empId: id },
     })

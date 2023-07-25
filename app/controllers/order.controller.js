@@ -50,6 +50,11 @@ exports.create = async (req, res) => {
       throw error;
     }
     req.body.statusId = 1;
+    const senderDetails = await db.customers.findOne({
+      where: {
+        id: req.body.sender
+      }
+    })
     await Order.create(req.body)
       .then((data) => {
         res.send({
@@ -355,6 +360,21 @@ exports.updateAssigned = async (req, res) => {
     }
     const id = req.params.id;
     req.body.statusId = 2;
+    const order = await db.order.findOne({
+      where: {
+        id: id
+      }
+    })
+    const customerDetails = await db.customers.findOne({
+      where: {
+        id: order?.receiver
+      }
+    })
+    const employeeDetails = await db.employee.findOne({
+      where: {
+        empId: req.body.assignedTo
+      }
+    })
     await Order.update(req.body, {
       where: { id: id },
     })
@@ -392,6 +412,18 @@ exports.updatePickup = async (req, res) => {
   try {
     const id = req.params.id;
     req.body.statusId = 3;
+    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
+    const order = await db.order.findOne({
+      where: {
+        id: id
+      }
+    })
+    const customerDetails = await db.customers.findOne({
+      where: {
+        id: order?.receiver
+      }
+    })
+
     await Order.update(req.body, {
       where: { id: id },
     })
@@ -425,9 +457,27 @@ exports.updatePickup = async (req, res) => {
     });
   }
 };
+
+//
 exports.updateDeliveryStatus = async (req, res) => {
   try {
     const id = req.params.id;
+    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
+    const order = await db.order.findOne({
+      where: {
+        id: id
+      }
+    })
+    const receiverDetails = await db.customers.findOne({
+      where: {
+        id: order.receiver,
+      }
+    })
+    const senderDetails = await db.customers.findOne({
+      where: {
+        id: order.sender,
+      }
+    })
     await Order.update(req.body, {
       where: { id: id },
     })
@@ -465,6 +515,7 @@ exports.updateDeliveryStatus = async (req, res) => {
   }
 };
 
+//
 exports.updateOrderStatus = async (req, res) => {
   try {
     if (req.body.statusId === undefined) {
@@ -481,6 +532,18 @@ exports.updateOrderStatus = async (req, res) => {
       },
     });
 
+    const senderDetails = await db.customers.findOne({
+      where: {
+        id: currentOrder?.sender
+      }
+    })
+
+    const receiverDetails = await db.customers.findOne({
+      where: {
+        id: currentOrder?.receiver
+      }
+    })
+
     const companyDetails = await db.companyInfo.findOne({});
 
     if (currentOrder.statusId == 3) {
@@ -488,7 +551,7 @@ exports.updateOrderStatus = async (req, res) => {
     } else {
       req.body.totalPrice = 0;
     }
-
+    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
     await Order.update(req.body, {
       where: { id: id },
     })

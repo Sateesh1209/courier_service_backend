@@ -1,6 +1,7 @@
 const db = require("../models");
 const Op = db.Sequelize.Op;
 const Customer = db.customers;
+const {triggerRunBillGeneration} = require('../utilities/billGeneration')
 
 // Create and Save a new Customer
 exports.create = async (req, res) => {
@@ -136,7 +137,7 @@ exports.create = async (req, res) => {
         } else {
           res.send({
             status: "Success",
-            message: "This email is soft delted.",
+            message: "This email is soft deleted.",
             data: {
               accoutExists: true,
               message: `This email (${data.email}) is already registered but soft deleted. Please click on confirm if you wanted to reactivate it and all fields will get updated...`,
@@ -236,6 +237,54 @@ exports.findOne = (req, res) => {
       res.status(500).send({
         status: "Failure",
         message: err.message || "Error retrieving Customer with id = " + id,
+        data: null,
+      });
+    });
+};
+exports.findOrdersByCustomer = (req, res) => {
+  const id = req.params.id;
+
+  db.order
+    .findAll({
+      where: {
+        sender: id,
+      },
+      include: [
+        {
+          model: db.employee,
+          as: "assignedToDetails",
+          attributes: ["empId", "firstName", "lastName"],
+        },
+        {
+          model: db.customers,
+          as: "receiverDetails",
+        },
+        {
+          model: db.status,
+          as: "status",
+        },
+      ],
+    })
+    .then((data) => {
+      if (data) {
+        res.send({
+          status: "Success",
+          message: "Orders Fetched Successfully",
+          data: data,
+        });
+      } else {
+        res.status(404).send({
+          status: "Failure",
+          message: `Cannot find orders of customer with id = ${id}.`,
+          data: null,
+        });
+      }
+    })
+    .catch((err) => {
+      res.status(500).send({
+        status: "Failure",
+        message:
+          err.message || "Error retrieving Orders of Customer with id = " + id,
         data: null,
       });
     });
@@ -372,6 +421,26 @@ exports.update = async (req, res) => {
   });
 };
 
+// generateBill
+
+exports.generateBill = async (req, res) => {
+  try {
+    await triggerRunBillGeneration(false)
+    res.status(200).send({
+      status: "Success",
+      message: "Bill Reports are successfully generated",
+      data: null,
+    });
+  }catch (e) {
+    console.log('Error in generating the bill', e)
+    res.status(500).send({
+      status: "Failure",
+      message: "Error in generating the bill",
+      data: null,
+    });
+  }
+}
+
 // Delete a Customer with the specified id in the request
 exports.delete = async (req, res) => {
   try {
@@ -393,6 +462,11 @@ exports.delete = async (req, res) => {
       });
     }
     let customer = { isActive: false };
+    const customerDetails = await Customer.findOne({
+      where: {
+        id: id
+      }
+    })
     Customer.update(customer, {
       where: { id: id },
     })
