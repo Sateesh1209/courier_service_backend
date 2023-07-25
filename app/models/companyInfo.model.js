@@ -42,6 +42,22 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      billingCycle: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      billingExpression: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      phone: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      lastBillGenerated: {
+        type: Sequelize.DATE,
+        allowNull: true
+      }
     },
     {
       tableName: "company_info",

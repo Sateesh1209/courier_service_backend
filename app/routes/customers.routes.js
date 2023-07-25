@@ -8,9 +8,15 @@ module.exports = (app) => {
 
   //   Retrieve all employees
   router.get("/customers/", [authenticateRoute], Customer.findAll);
-
+  router.get("/customers/generateBill/", [authenticateRoute], Customer.generateBill);
+  
   // Retrieve a single Employee with id
   router.get("/customer/:id", [authenticateRoute], Customer.findOne);
+  router.get(
+    "/customer/orders/:id",
+    [authenticateRoute],
+    Customer.findOrdersByCustomer
+  );
 
   // Retrieve a single Employee with email
   router.get(
