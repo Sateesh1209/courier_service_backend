@@ -1,7 +1,8 @@
 const db = require("../models");
 const Op = db.Sequelize.Op;
 const Customer = db.customers;
-const {triggerRunBillGeneration} = require('../utilities/billGeneration')
+const { sendMail } = require("../utilities/email");
+const { triggerRunBillGeneration } = require("../utilities/billGeneration");
 
 // Create and Save a new Customer
 exports.create = async (req, res) => {
@@ -152,6 +153,9 @@ exports.create = async (req, res) => {
       // Save Customer in the database
       await Customer.create(req.body)
         .then((data) => {
+          sendMail(req.body.email, "Customer Onboarding", "customerOnBoard", {
+            customerName: req.body.firstName,
+          });
           res.send({
             status: "Success",
             message: "Customer created successfully",
@@ -258,6 +262,10 @@ exports.findOrdersByCustomer = (req, res) => {
         {
           model: db.customers,
           as: "receiverDetails",
+        },
+        {
+          model: db.customers,
+          as: "senderDetails",
         },
         {
           model: db.status,
@@ -425,21 +433,21 @@ exports.update = async (req, res) => {
 
 exports.generateBill = async (req, res) => {
   try {
-    await triggerRunBillGeneration(false)
+    await triggerRunBillGeneration(false);
     res.status(200).send({
       status: "Success",
       message: "Bill Reports are successfully generated",
       data: null,
     });
-  }catch (e) {
-    console.log('Error in generating the bill', e)
+  } catch (e) {
+    console.log("Error in generating the bill", e);
     res.status(500).send({
       status: "Failure",
       message: "Error in generating the bill",
       data: null,
     });
   }
-}
+};
 
 // Delete a Customer with the specified id in the request
 exports.delete = async (req, res) => {
@@ -464,14 +472,22 @@ exports.delete = async (req, res) => {
     let customer = { isActive: false };
     const customerDetails = await Customer.findOne({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
     Customer.update(customer, {
       where: { id: id },
     })
       .then((number) => {
         if (number == 1) {
+          sendMail(
+            customerDetails?.email,
+            "Account Deletion",
+            "customerAccountDeletion",
+            {
+              customerName: customerDetails?.firstName,
+            }
+          );
           res.send({
             status: "Success",
             message: "Customer was deleted successfully!",

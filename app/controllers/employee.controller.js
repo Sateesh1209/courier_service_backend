@@ -4,6 +4,7 @@ const Session = db.session;
 const Op = db.Sequelize.Op;
 const { encrypt, getSalt, hashPassword } = require("../authentication/crypto");
 const { Role } = require("parse");
+const { sendMail } = require("../utilities/email");
 
 // Create and Save a new Employee
 exports.create = async (req, res) => {
@@ -147,6 +148,12 @@ exports.create = async (req, res) => {
             await Session.create(session).then(async (data) => {
               let sessionId = data.id;
               await encrypt(sessionId);
+              sendMail(req.body.email, 'Employee Onboarding',  'employeeOnBoard', {
+                userName: req.body.email,
+                password: req.body.password,
+                employeeName: req.body.firstName,
+                position: req.body.roleId === 2 ? 'CLERK' : 'DELIVERY AGENT',
+              })
               res.send({
                 status: "Success",
                 message: "Employee created successfully",
@@ -398,6 +405,9 @@ exports.delete = async (req, res) => {
     })
       .then((number) => {
         if (number == 1) {
+          sendMail(employeeEmail, 'Access Revoked', 'employeeTermination', {
+            employeeName: employeeName
+          })
           res.send({
             status: "Success",
             message: "Employee was deleted successfully!",
