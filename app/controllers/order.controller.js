@@ -1,4 +1,5 @@
 const db = require("../models");
+const { sendMail } = require("../utilities/email");
 const Op = db.Sequelize.Op;
 const Order = db.order;
 
@@ -57,6 +58,9 @@ exports.create = async (req, res) => {
     })
     await Order.create(req.body)
       .then((data) => {
+        sendMail(senderDetails?.email, 'Order Confirmation', 'orderConfirmation', ({
+          customerName: senderDetails?.firstName
+        }))
         res.send({
           status: "Success",
           message: "Order created successfully",
@@ -380,6 +384,11 @@ exports.updateAssigned = async (req, res) => {
     })
       .then((number) => {
         if (number == 1) {
+          sendMail(customerDetails?.email, 'Order Update', 'orderAssigned', ({
+            customerName: customerDetails?.firstName,
+            deliverAgentName: employeeDetails?.firstName,
+            deliverAgentPhone: employeeDetails?.phone,
+          }))
           res.send({
             status: "Success",
             message: "Order assigned successfully.",
@@ -429,6 +438,9 @@ exports.updatePickup = async (req, res) => {
     })
       .then((number) => {
         if (number == 1) {
+          sendMail(customerDetails?.email, 'Order Update', 'orderPickup', ({
+            customerName:customerDetails?.firstName
+          }))
           res.send({
             status: "Success",
             message: "Order status updated successfully.",
@@ -483,6 +495,24 @@ exports.updateDeliveryStatus = async (req, res) => {
     })
       .then((number) => {
         if (number == 1) {
+          if(req.body?.statusId == 4) {
+            sendMail(senderDetails?.email, 'Order Delivered', 'orderDelivered', ({
+              customerName: senderDetails?.firstName
+            }))
+            sendMail(receiverDetails?.email, 'Order Delivered', 'orderDelivered', ({
+              customerName: receiverDetails?.firstName
+            }))
+          }
+          if(req.body?.statusId == 6) {
+            sendMail(receiverDetails?.email, 'Order Update', 'orderDelay', ({
+              customerName: receiverDetails?.firstName
+            }))
+          }
+          if(req.body?.statusId == 7) {
+            sendMail(senderDetails?.email, 'Order Rejected', 'orderReject', ({
+              customerName: senderDetails.firstName
+            }))
+          }
           res.send({
             status: "Success",
             message:
@@ -557,6 +587,12 @@ exports.updateOrderStatus = async (req, res) => {
     })
       .then((number) => {
         if (number == 1) {
+          sendMail(senderDetails?.email, 'Order Update', 'orderCancel', ({
+            customerName: senderDetails?.firstName
+          }))
+          sendMail(receiverDetails?.email, 'Order Update', 'orderCancel', ({
+            customerName: receiverDetails?.firstName
+          }))
           res.send({
             status: "Success",
             message: "Order status updated successfully.",
