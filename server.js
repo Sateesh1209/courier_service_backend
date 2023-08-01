@@ -108,12 +108,12 @@ db.sequelize
           });
       }
     });
+    triggerRunBillGeneration(true)
   })
   .catch((e) => {
     console.log("Error creating table");
   });
 
-triggerRunBillGeneration(true)
   
 var corsOptions = {
   origin: "http://localhost:8081",

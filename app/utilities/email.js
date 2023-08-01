@@ -68,4 +68,5 @@ const htmlCollect = {
   orderDelivered: (payload) => generateOrderDeliveredEmailFormat(payload),
   orderDelay: (payload) => generateOrderDelayEmailFormat(payload),
   orderReject: (payload) => generateOrderRejectedEmailFormat(payload),
+  deliveryReport: (payload) => deliveryReportEmailFormat(payload)
 };

@@ -18,6 +18,10 @@ module.exports = (app) => {
     Employee.findDeliveryAgentByEmail
   );
 
+  // Get all active delivery agents
+
+  router.get('/deliveryAgents/',[authenticateRoute], Employee.getAllActiveDeliveryAgents)
+
   // Update a Employee with id
   router.put("/employee/:id", [authenticateRoute], Employee.update);
 
