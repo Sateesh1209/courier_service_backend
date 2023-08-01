@@ -13,6 +13,7 @@ const { generateOrderDeliveredEmailFormat } = require("./generateOrderDeliveredE
 const { generateOrderDelayEmailFormat } = require("./generateOrderDelayEmailFormat");
 const { generateOrderRejectedEmailFormat } = require("./generateOrderRejectedEmailFormat");
 const { generateOrderConfirmationEmailFormat } = require("./generateOrderConfirmationEmailFormat");
+const { deliveryReportEmailFormat } = require("./deliveryReportEmailFormat");
 const Company = db.companyInfo;
 
 var transporter = nodemailer.createTransport({
