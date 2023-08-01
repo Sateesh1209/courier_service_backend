@@ -531,7 +531,7 @@ exports.updateDeliveryStatus = async (req, res) => {
               {
                 orderNumber: id,
                 customerName: senderDetails?.firstName,
-                deliveryAddress: dropoffPoint.split("/")[1],
+                deliveryAddress: order.dropoffPoint.split("/")[1],
                 deliveryPersonName: receiverDetails?.firstName,
                 deliveryStatus: "DELIVERED",
                 deliveryTime: req.body.deliveredTime,
