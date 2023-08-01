@@ -53,14 +53,19 @@ exports.create = async (req, res) => {
     req.body.statusId = 1;
     const senderDetails = await db.customers.findOne({
       where: {
-        id: req.body.sender
-      }
-    })
+        id: req.body.sender,
+      },
+    });
     await Order.create(req.body)
       .then((data) => {
-        sendMail(senderDetails?.email, 'Order Confirmation', 'orderConfirmation', ({
-          customerName: senderDetails?.firstName
-        }))
+        sendMail(
+          senderDetails?.email,
+          "Order Confirmation",
+          "orderConfirmation",
+          {
+            customerName: senderDetails?.firstName,
+          }
+        );
         res.send({
           status: "Success",
           message: "Order created successfully",
@@ -366,29 +371,29 @@ exports.updateAssigned = async (req, res) => {
     req.body.statusId = 2;
     const order = await db.order.findOne({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
     const customerDetails = await db.customers.findOne({
       where: {
-        id: order?.receiver
-      }
-    })
+        id: order?.receiver,
+      },
+    });
     const employeeDetails = await db.employee.findOne({
       where: {
-        empId: req.body.assignedTo
-      }
-    })
+        empId: req.body.assignedTo,
+      },
+    });
     await Order.update(req.body, {
       where: { id: id },
     })
       .then((number) => {
         if (number == 1) {
-          sendMail(customerDetails?.email, 'Order Update', 'orderAssigned', ({
+          sendMail(customerDetails?.email, "Order Update", "orderAssigned", {
             customerName: customerDetails?.firstName,
             deliverAgentName: employeeDetails?.firstName,
             deliverAgentPhone: employeeDetails?.phone,
-          }))
+          });
           res.send({
             status: "Success",
             message: "Order assigned successfully.",
@@ -421,26 +426,26 @@ exports.updatePickup = async (req, res) => {
   try {
     const id = req.params.id;
     req.body.statusId = 3;
-    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
+    req.body.lastStatusUpdate = db.Sequelize.literal("CURRENT_TIMESTAMP");
     const order = await db.order.findOne({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
     const customerDetails = await db.customers.findOne({
       where: {
-        id: order?.receiver
-      }
-    })
+        id: order?.receiver,
+      },
+    });
 
     await Order.update(req.body, {
       where: { id: id },
     })
       .then((number) => {
         if (number == 1) {
-          sendMail(customerDetails?.email, 'Order Update', 'orderPickup', ({
-            customerName:customerDetails?.firstName
-          }))
+          sendMail(customerDetails?.email, "Order Update", "orderPickup", {
+            customerName: customerDetails?.firstName,
+          });
           res.send({
             status: "Success",
             message: "Order status updated successfully.",
@@ -474,44 +479,75 @@ exports.updatePickup = async (req, res) => {
 exports.updateDeliveryStatus = async (req, res) => {
   try {
     const id = req.params.id;
-    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
+    req.body.lastStatusUpdate = db.Sequelize.literal("CURRENT_TIMESTAMP");
     const order = await db.order.findOne({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
+    const adminMail = await db.employee.findOne({
+      where: {
+        roleId: 1,
+      },
+    });
     const receiverDetails = await db.customers.findOne({
       where: {
         id: order.receiver,
-      }
-    })
+      },
+    });
     const senderDetails = await db.customers.findOne({
       where: {
         id: order.sender,
-      }
-    })
+      },
+    });
+
+    const bonusPrice = order.totalPrice - order.quotedPrice;
     await Order.update(req.body, {
       where: { id: id },
     })
       .then((number) => {
         if (number == 1) {
-          if(req.body?.statusId == 4) {
-            sendMail(senderDetails?.email, 'Order Delivered', 'orderDelivered', ({
-              customerName: senderDetails?.firstName
-            }))
-            sendMail(receiverDetails?.email, 'Order Delivered', 'orderDelivered', ({
-              customerName: receiverDetails?.firstName
-            }))
+          if (req.body?.statusId == 4) {
+            sendMail(
+              senderDetails?.email,
+              "Order Delivered",
+              "orderDelivered",
+              {
+                customerName: senderDetails?.firstName,
+              }
+            );
+            sendMail(
+              receiverDetails?.email,
+              "Order Delivered",
+              "orderDelivered",
+              {
+                customerName: receiverDetails?.firstName,
+              }
+            );
+            sendMail(
+              adminMail?.email,
+              "Order Delivery Report - Admin Notification",
+              "deliveryReport",
+              {
+                orderNumber: id,
+                customerName: senderDetails?.firstName,
+                deliveryAddress: dropoffPoint.split("/")[1],
+                deliveryPersonName: receiverDetails?.firstName,
+                deliveryStatus: "DELIVERED",
+                deliveryTime: req.body.deliveredTime,
+                bonusAmount: bonusPrice < 0 ? 0 : bonusPrice,
+              }
+            );
           }
-          if(req.body?.statusId == 6) {
-            sendMail(receiverDetails?.email, 'Order Update', 'orderDelay', ({
-              customerName: receiverDetails?.firstName
-            }))
+          if (req.body?.statusId == 6) {
+            sendMail(receiverDetails?.email, "Order Update", "orderDelay", {
+              customerName: receiverDetails?.firstName,
+            });
           }
-          if(req.body?.statusId == 7) {
-            sendMail(senderDetails?.email, 'Order Rejected', 'orderReject', ({
-              customerName: senderDetails.firstName
-            }))
+          if (req.body?.statusId == 7) {
+            sendMail(senderDetails?.email, "Order Rejected", "orderReject", {
+              customerName: senderDetails.firstName,
+            });
           }
           res.send({
             status: "Success",
@@ -564,15 +600,15 @@ exports.updateOrderStatus = async (req, res) => {
 
     const senderDetails = await db.customers.findOne({
       where: {
-        id: currentOrder?.sender
-      }
-    })
+        id: currentOrder?.sender,
+      },
+    });
 
     const receiverDetails = await db.customers.findOne({
       where: {
-        id: currentOrder?.receiver
-      }
-    })
+        id: currentOrder?.receiver,
+      },
+    });
 
     const companyDetails = await db.companyInfo.findOne({});
 
@@ -581,18 +617,18 @@ exports.updateOrderStatus = async (req, res) => {
     } else {
       req.body.totalPrice = 0;
     }
-    req.body.lastStatusUpdate = db.Sequelize.literal('CURRENT_TIMESTAMP')
+    req.body.lastStatusUpdate = db.Sequelize.literal("CURRENT_TIMESTAMP");
     await Order.update(req.body, {
       where: { id: id },
     })
       .then((number) => {
         if (number == 1) {
-          sendMail(senderDetails?.email, 'Order Update', 'orderCancel', ({
-            customerName: senderDetails?.firstName
-          }))
-          sendMail(receiverDetails?.email, 'Order Update', 'orderCancel', ({
-            customerName: receiverDetails?.firstName
-          }))
+          sendMail(senderDetails?.email, "Order Update", "orderCancel", {
+            customerName: senderDetails?.firstName,
+          });
+          sendMail(receiverDetails?.email, "Order Update", "orderCancel", {
+            customerName: receiverDetails?.firstName,
+          });
           res.send({
             status: "Success",
             message: "Order status updated successfully.",

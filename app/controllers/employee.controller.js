@@ -148,12 +148,17 @@ exports.create = async (req, res) => {
             await Session.create(session).then(async (data) => {
               let sessionId = data.id;
               await encrypt(sessionId);
-              sendMail(req.body.email, 'Employee Onboarding',  'employeeOnBoard', {
-                userName: req.body.email,
-                password: req.body.password,
-                employeeName: req.body.firstName,
-                position: req.body.roleId === 2 ? 'CLERK' : 'DELIVERY AGENT',
-              })
+              sendMail(
+                req.body.email,
+                "Employee Onboarding",
+                "employeeOnBoard",
+                {
+                  userName: req.body.email,
+                  password: req.body.password,
+                  employeeName: req.body.firstName,
+                  position: req.body.roleId === 2 ? "CLERK" : "DELIVERY AGENT",
+                }
+              );
               res.send({
                 status: "Success",
                 message: "Employee created successfully",
@@ -308,6 +313,44 @@ exports.findDeliveryAgentByEmail = (req, res) => {
     });
 };
 
+// Get all active delivery agents
+
+exports.getAllActiveDeliveryAgents = (req, res) => {
+  Employee.findAll({
+    where: {
+      roleId: 3,
+      isActive: 1,
+    },
+    include: [
+      {
+        model: db.roles,
+        as: "role",
+      },
+    ],
+    attributes: { exclude: ["password", "salt"] },
+  })
+    .then((data) => {
+      if (data) {
+        res.send({
+          status: "Success",
+          message: "Delivery Agents Fetched Successfully",
+          data: data,
+        });
+      } else {
+        res.status(404).send({
+          status: "Failure",
+          message: `Cannot find Delivery Agents`,
+          data: null,
+        });
+      }
+    })
+    .catch((err) => {
+      res.status(500).send({
+        message: err.message || "Error retrieving Delivery Agents",
+      });
+    });
+};
+
 // Update a Employee by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
@@ -395,19 +438,19 @@ exports.delete = async (req, res) => {
     let employee = { isActive: false };
     const employeeDetails = await Employee.findOne({
       where: {
-        empId: id
-      }
-    })
-    const employeeEmail = employeeDetails?.email
-    const employeeName = employeeDetails?.firstName
+        empId: id,
+      },
+    });
+    const employeeEmail = employeeDetails?.email;
+    const employeeName = employeeDetails?.firstName;
     await Employee.update(employee, {
       where: { empId: id },
     })
       .then((number) => {
         if (number == 1) {
-          sendMail(employeeEmail, 'Access Revoked', 'employeeTermination', {
-            employeeName: employeeName
-          })
+          sendMail(employeeEmail, "Access Revoked", "employeeTermination", {
+            employeeName: employeeName,
+          });
           res.send({
             status: "Success",
             message: "Employee was deleted successfully!",
